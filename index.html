@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Family Chat</title>
+    <style>
+        body { font-family: Arial; background-color: #f0f0f0; padding: 20px; }
+        #chat { border: 1px solid #ccc; background: white; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
+        input[type="text"] { padding: 10px; width: 60%; }
+        button { padding: 10px; margin-left: 5px; }
+        .emoji-picker { display: none; position: absolute; bottom: 80px; left: 20px; background: white; border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
+        .emoji { font-size: 20px; cursor: pointer; margin: 5px; }
+        img.chat-image { max-width: 200px; display: block; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h2>👪 Family Chat Room</h2>
+    <div id="chat"></div>
+
+    <input id="messageInput" type="text" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
+    <button onclick="toggleEmojiPicker()">😀</button>
+    <button onclick="document.getElementById('imageInput').click()">➕</button>
+    <input type="file" id="imageInput" style="display:none" accept="image/*" onchange="sendImage()" />
+
+    <div class="emoji-picker" id="emojiPicker">
+        <span class="emoji" onclick="insertEmoji('😊')">😊</span>
+        <span class="emoji" onclick="insertEmoji('😂')">😂</span>
+        <span class="emoji" onclick="insertEmoji('❤️')">❤️</span>
+        <span class="emoji" onclick="insertEmoji('👍')">👍</span>
+        <span class="emoji" onclick="insertEmoji('😎')">😎</span>
+    </div>
+
+    <script>
+        let username = "";
+        while (!username) {
+            username = prompt("Enter your name to join the chat:");
+        }
+
+        const socket = new WebSocket("ws://" + location.host + "/ws");
+
+        socket.onopen = () => {
+            console.log("Connected to server");
+        };
+
+        socket.onmessage = function(event) {
+            let chat = document.getElementById("chat");
+            let msg = document.createElement("div");
+
+            try {
+                let text = event.data;
+
+                if (text.includes("data:image")) {
+                    // Image message
+                    const parts = text.split(": ");
+                    const sender = parts[0];
+                    const base64 = parts.slice(1).join(": "); // in case ":" is in base64
+
+                    msg.innerHTML = `<strong>${sender}</strong><br><img src="${base64}" class="chat-image">`;
+                } else {
+                    // Text message
+                    msg.textContent = text;
+                }
+            } catch (e) {
+                msg.textContent = event.data;
+            }
+
+            chat.appendChild(msg);
+            chat.scrollTop = chat.scrollHeight;
+        };
+
+        function sendMessage() {
+            let input = document.getElementById("messageInput");
+            if (input.value.trim() !== "") {
+                const message = username + ": " + input.value;
+                socket.send(JSON.stringify(message));
+                input.value = "";
+            }
+        }
+
+        function toggleEmojiPicker() {
+            let picker = document.getElementById("emojiPicker");
+            picker.style.display = (picker.style.display === "none" || picker.style.display === "") ? "block" : "none";
+        }
+
+        function insertEmoji(emoji) {
+            let input = document.getElementById("messageInput");
+            input.value += emoji;
+            toggleEmojiPicker(); // Hide emoji picker
+        }
+
+        function sendImage() {
+            const fileInput = document.getElementById("imageInput");
+            const file = fileInput.files[0];
+
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Image = e.target.result;
+                const message = username + ": " + base64Image;
+                socket.send(JSON.stringify(message));
+            };
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+</html>
