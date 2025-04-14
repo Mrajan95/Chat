@@ -1,3 +1,6 @@
-module github.com/Mrajan95/Chat
+module chat
 
-go 1.24
+go 1.20
+
+require github.com/gorilla/websocket v1.5.0
+
