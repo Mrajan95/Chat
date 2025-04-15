@@ -1,4 +1,3 @@
-// server.go
 package main
 
 import (
@@ -8,28 +7,21 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Upgrader to upgrade HTTP connections to WebSocket
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Allow all origins (not secure for production)
+	},
 }
 
-// Keep track of all clients
 var clients = make(map[*websocket.Conn]bool)
-
-// Channel to broadcast messages to all clients
-var broadcast = make(chan interface{}) // Updated: generic type
+var broadcast = make(chan interface{}) // Generic type to handle any message
 
 func main() {
-	// Serve the HTML file
 	http.HandleFunc("/", serveHome)
-
-	// Handle WebSocket connections
 	http.HandleFunc("/ws", handleConnections)
 
-	// Start broadcasting messages to all clients
 	go handleMessages()
 
-	// Start server on port 8080
 	fmt.Println("Server started at http://localhost:8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
@@ -49,18 +41,16 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
-	// Register new client
 	clients[ws] = true
 
 	for {
-		var msg interface{} // Updated: handle both strings and base64 image strings
+		var msg interface{}
 		err := ws.ReadJSON(&msg)
 		if err != nil {
 			fmt.Println("Read Error:", err)
 			delete(clients, ws)
 			break
 		}
-		// Send message to broadcast channel
 		broadcast <- msg
 	}
 }
