@@ -9,7 +9,11 @@
         button { padding: 10px; margin-left: 5px; }
         .emoji-picker { display: none; position: absolute; bottom: 80px; left: 20px; background: white; border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
         .emoji { font-size: 20px; cursor: pointer; margin: 5px; }
-        img.chat-image { max-width: 200px; display: block; margin-top: 5px; }
+        img.chat-image, video.chat-image {
+            max-width: 200px;
+            display: block;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -19,8 +23,8 @@
     <input id="messageInput" type="text" placeholder="Type your message..." />
     <button onclick="sendMessage()">Send</button>
     <button onclick="toggleEmojiPicker()">😀</button>
-    <button onclick="document.getElementById('imageInput').click()">➕</button>
-    <input type="file" id="imageInput" style="display:none" accept="image/*" onchange="sendImage()" />
+    <button onclick="document.getElementById('mediaInput').click()">➕</button>
+    <input type="file" id="mediaInput" style="display:none" accept="image/*,video/*" onchange="sendMedia()" />
 
     <div class="emoji-picker" id="emojiPicker">
         <span class="emoji" onclick="insertEmoji('😊')">😊</span>
@@ -36,7 +40,7 @@
             username = prompt("Enter your name to join the chat:");
         }
 
-        const socket = new WebSocket("wss://" + location.host + "/ws");
+        const socket = new WebSocket("ws://" + location.host + "/ws");
 
         socket.onopen = () => {
             console.log("Connected to server");
@@ -50,16 +54,25 @@
                 let text = event.data;
 
                 if (text.includes("data:image")) {
-                    // Image message
                     const parts = text.split(": ");
                     const sender = parts[0];
-                    const base64 = parts.slice(1).join(": "); // in case ":" is in base64
-
+                    const base64 = parts.slice(1).join(": ");
                     msg.innerHTML = `<strong>${sender}</strong><br><img src="${base64}" class="chat-image">`;
+
+                } else if (text.includes("data:video")) {
+                    const parts = text.split(": ");
+                    const sender = parts[0];
+                    const base64 = parts.slice(1).join(": ");
+                    msg.innerHTML = `<strong>${sender}</strong><br>
+                        <video controls class="chat-image">
+                            <source src="${base64}">
+                            Your browser does not support the video tag.
+                        </video>`;
+
                 } else {
-                    // Text message
                     msg.textContent = text;
                 }
+
             } catch (e) {
                 msg.textContent = event.data;
             }
@@ -88,18 +101,18 @@
             toggleEmojiPicker(); // Hide emoji picker
         }
 
-        function sendImage() {
-            const fileInput = document.getElementById("imageInput");
+        function sendMedia() {
+            const fileInput = document.getElementById("mediaInput");
             const file = fileInput.files[0];
-
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const base64Image = e.target.result;
-                const message = username + ": " + base64Image;
+            reader.onload = function (e) {
+                const base64 = e.target.result;
+                const message = username + ": " + base64;
                 socket.send(JSON.stringify(message));
             };
+
             reader.readAsDataURL(file);
         }
     </script>
