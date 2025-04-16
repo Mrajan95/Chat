@@ -1,120 +1,368 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Family Chat</title>
     <style>
-        body { font-family: Arial; background-color: #f0f0f0; padding: 20px; }
-        #chat { border: 1px solid #ccc; background: white; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
-        input[type="text"] { padding: 10px; width: 60%; }
-        button { padding: 10px; margin-left: 5px; }
-        .emoji-picker { display: none; position: absolute; bottom: 80px; left: 20px; background: white; border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
-        .emoji { font-size: 20px; cursor: pointer; margin: 5px; }
-        img.chat-image, video.chat-image {
-            max-width: 200px;
-            display: block;
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header,
+        footer {
+            background: #004080;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            height: 100%;
+        }
+
+        #chat-section {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            background: #e6f2ff;
+            overflow: hidden;
+        }
+
+        #chat {
+            flex: 1;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .chat-bubble {
+            max-width: 70%;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .me {
+            background-color: #d1e7ff;
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        .other {
+            background-color: #f1f0f0;
+            align-self: flex-start;
+        }
+
+        .timestamp {
+            font-size: 10px;
+            color: gray;
             margin-top: 5px;
+        }
+
+        #typing {
+            font-style: italic;
+            font-size: 13px;
+            color: gray;
+            margin: 5px 0;
+        }
+
+        #controls {
+            display: flex;
+            margin-top: 10px;
+            gap: 5px;
+        }
+
+        #controls input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px;
+            background: #004080;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .emoji-picker {
+            display: none;
+            position: absolute;
+            bottom: 70px;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .emoji {
+            font-size: 20px;
+            cursor: pointer;
+            margin: 3px;
+        }
+
+        img.chat-image,
+        video.chat-image {
+            max-width: 200px;
+            margin-top: 5px;
+            border-radius: 8px;
+        }
+
+        #active-users-section {
+            flex: 1;
+            background: #f5f5f5;
+            padding: 10px;
+            border-left: 1px solid #ccc;
+            overflow-y: auto;
+        }
+
+        #active-users-section h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        #activeUsersList {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        #activeUsersList li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .dot {
+            height: 10px;
+            width: 10px;
+            background-color: green;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        @media screen and (max-width: 768px) {
+            main {
+                flex-direction: column;
+            }
+
+            #chat-section,
+            #active-users-section {
+                width: 100%;
+                flex: none;
+            }
+
+            #chat {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            #controls {
+                flex-direction: column;
+            }
+
+            #controls input[type="text"],
+            button {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+
+            .emoji-picker {
+                position: fixed;
+                bottom: 100px;
+                right: 10px;
+                z-index: 999;
+            }
+        }
+
+
+        < !-- 🔁 Replace the updateActiveUsers() function in <script>with this: --> // ... all previous code ...
+
+        function updateActiveUsers() {
+            const list=document.getElementById("activeUsersList");
+            list.innerHTML="";
+
+            const sortedUsers=Object.keys(activeUsers).sort((a, b)=> a.localeCompare(b));
+            const youFirst=sortedUsers.filter(u=> u===username);
+            const others=sortedUsers.filter(u=> u !==username);
+
+            youFirst.concat(others).forEach(user=> {
+                    const li=document.createElement("li");
+
+                    const displayName=user===username ? `🧍‍♀️ You ($ {
+                            user
+                        })` : user;
+
+                    li.innerHTML=`<span class="dot" ></span>$ {
+                        displayName
+                    }
+
+                    `;
+                    list.appendChild(li);
+                });
         }
     </style>
 </head>
+
 <body>
-    <h2>👪 Family Chat Room</h2>
-    <div id="chat"></div>
 
-    <input id="messageInput" type="text" placeholder="Type your message..." />
-    <button onclick="sendMessage()">Send</button>
-    <button onclick="toggleEmojiPicker()">😀</button>
-    <button onclick="document.getElementById('mediaInput').click()">➕</button>
-    <input type="file" id="mediaInput" style="display:none" accept="image/*,video/*" onchange="sendMedia()" />
+    <header>
+        👪 Family Chat Room
+    </header>
 
-    <div class="emoji-picker" id="emojiPicker">
-        <span class="emoji" onclick="insertEmoji('😊')">😊</span>
-        <span class="emoji" onclick="insertEmoji('😂')">😂</span>
-        <span class="emoji" onclick="insertEmoji('❤️')">❤️</span>
-        <span class="emoji" onclick="insertEmoji('👍')">👍</span>
-        <span class="emoji" onclick="insertEmoji('😎')">😎</span>
-    </div>
+    <main>
+        <!-- Chat Section -->
+        <section id="chat-section">
+            <div id="chat"></div>
+            <div id="typing"></div>
+            <div id="controls">
+                <input id="messageInput" type="text" placeholder="Type your message..." oninput="notifyTyping()" />
+                <button onclick="sendMessage()">Send</button>
+                <button onclick="toggleEmojiPicker()">😀</button>
+                <button onclick="document.getElementById('mediaInput').click()">📎</button>
+                <input type="file" id="mediaInput" accept="image/*,video/*" style="display: none;"
+                    onchange="sendMedia()" />
+            </div>
+            <div id="emojiPicker" class="emoji-picker">
+                <span class="emoji" onclick="insertEmoji('😊')">😊</span>
+                <span class="emoji" onclick="insertEmoji('😂')">😂</span>
+                <span class="emoji" onclick="insertEmoji('❤️')">❤️</span>
+                <span class="emoji" onclick="insertEmoji('👍')">👍</span>
+                <span class="emoji" onclick="insertEmoji('🎉')">🎉</span>
+            </div>
+        </section>
+
+        <!-- Active Users Sidebar -->
+        <aside id="active-users-section">
+            <h3>🟢 Active Users</h3>
+            <ul id="activeUsersList"></ul>
+        </aside>
+    </main>
+
+    <footer>
+        ❤️ Made with love by Shiv
+    </footer>
 
     <script>
         let username = "";
-        while (!username) {
-            username = prompt("Enter your name to join the chat:");
-        }
+        while (!username) username = prompt("Enter your name:");
 
-        const socket = new WebSocket("wss://" + location.host + "/ws");
+        const socket = new WebSocket("ws://" + location.host + "/ws");
+        let typingTimeout;
+        let activeUsers = {};
 
         socket.onopen = () => {
-            console.log("Connected to server");
+            socket.send(JSON.stringify({ type: "user_joined", username }));
         };
 
-        socket.onmessage = function(event) {
-            let chat = document.getElementById("chat");
-            let msg = document.createElement("div");
+        window.onbeforeunload = () => {
+            socket.send(JSON.stringify({ type: "user_left", username }));
+        };
 
-            try {
-                let text = event.data;
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
 
-                if (text.includes("data:image")) {
-                    const parts = text.split(": ");
-                    const sender = parts[0];
-                    const base64 = parts.slice(1).join(": ");
-                    msg.innerHTML = `<strong>${sender}</strong><br><img src="${base64}" class="chat-image">`;
+            if (data.type === "message") {
+                const isMe = data.username === username;
+                const chatBubble = document.createElement("div");
+                chatBubble.className = `chat-bubble ${isMe ? "me" : "other"}`;
+                const time = new Date().toLocaleTimeString();
 
-                } else if (text.includes("data:video")) {
-                    const parts = text.split(": ");
-                    const sender = parts[0];
-                    const base64 = parts.slice(1).join(": ");
-                    msg.innerHTML = `<strong>${sender}</strong><br>
-                        <video controls class="chat-image">
-                            <source src="${base64}">
-                            Your browser does not support the video tag.
-                        </video>`;
-
+                if (data.content.startsWith("data:image") || data.content.startsWith("data:video")) {
+                    const tag = data.content.startsWith("data:video") ?
+                        `<video class="chat-image" controls><source src="${data.content}"></video>` :
+                        `<img class="chat-image" src="${data.content}" />`;
+                    chatBubble.innerHTML = `<strong>${isMe ? "You" : data.username}</strong><br>${tag}<div class="timestamp">${time}</div>`;
                 } else {
-                    msg.textContent = text;
+                    chatBubble.innerHTML = `<strong>${isMe ? "You" : data.username}</strong><br>${data.content}<div class="timestamp">${time}</div>`;
                 }
 
-            } catch (e) {
-                msg.textContent = event.data;
+                document.getElementById("chat").appendChild(chatBubble);
+                document.getElementById("chat").scrollTop = document.getElementById("chat").scrollHeight;
+            } else if (data.type === "typing") {
+                if (data.username !== username) {
+                    document.getElementById("typing").innerText = `${data.username} is typing...`;
+                }
+            } else if (data.type === "stop_typing") {
+                document.getElementById("typing").innerText = "";
+            } else if (data.type === "user_joined") {
+                activeUsers[data.username] = true;
+                updateActiveUsers();
+            } else if (data.type === "user_left") {
+                delete activeUsers[data.username];
+                updateActiveUsers();
             }
-
-            chat.appendChild(msg);
-            chat.scrollTop = chat.scrollHeight;
         };
 
         function sendMessage() {
-            let input = document.getElementById("messageInput");
-            if (input.value.trim() !== "") {
-                const message = username + ": " + input.value;
-                socket.send(JSON.stringify(message));
-                input.value = "";
-            }
+            const input = document.getElementById("messageInput");
+            const message = input.value.trim();
+            if (!message) return;
+
+            socket.send(JSON.stringify({ type: "message", username, content: message }));
+            input.value = "";
+            notifyStopTyping();
         }
 
         function toggleEmojiPicker() {
-            let picker = document.getElementById("emojiPicker");
-            picker.style.display = (picker.style.display === "none" || picker.style.display === "") ? "block" : "none";
+            const picker = document.getElementById("emojiPicker");
+            picker.style.display = picker.style.display === "block" ? "none" : "block";
         }
 
         function insertEmoji(emoji) {
-            let input = document.getElementById("messageInput");
+            const input = document.getElementById("messageInput");
             input.value += emoji;
-            toggleEmojiPicker(); // Hide emoji picker
+            toggleEmojiPicker();
         }
 
         function sendMedia() {
-            const fileInput = document.getElementById("mediaInput");
-            const file = fileInput.files[0];
+            const file = document.getElementById("mediaInput").files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            reader.onload = function (e) {
-                const base64 = e.target.result;
-                const message = username + ": " + base64;
-                socket.send(JSON.stringify(message));
+            reader.onload = (e) => {
+                socket.send(JSON.stringify({ type: "message", username, content: e.target.result }));
             };
-
             reader.readAsDataURL(file);
         }
+
+        function notifyTyping() {
+            socket.send(JSON.stringify({ type: "typing", username }));
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(notifyStopTyping, 1500);
+        }
+
+        function notifyStopTyping() {
+            socket.send(JSON.stringify({ type: "stop_typing", username }));
+        }
+
+        function updateActiveUsers() {
+            const list = document.getElementById("activeUsersList");
+            list.innerHTML = "";
+            Object.keys(activeUsers).forEach(user => {
+                const li = document.createElement("li");
+                li.innerHTML = `<span class="dot"></span>${user}`;
+                list.appendChild(li);
+            });
+        }
     </script>
+
 </body>
+
 </html>
